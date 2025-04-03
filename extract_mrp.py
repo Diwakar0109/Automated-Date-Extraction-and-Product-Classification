@@ -20,7 +20,9 @@ def extract_mrp(text):
     output_dir = r"mrp_extract_tained_model" 
     nlp = spacy.load(output_dir)  
     doc = nlp(text)  
+    #print("Recognized Entities:",)  
     for ent in doc.ents:  
+     #   print(ent.text)
         str+=(ent.text)
 
     mrp=filter_mrp(str)

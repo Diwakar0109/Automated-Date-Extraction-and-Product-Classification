@@ -6,12 +6,10 @@ from extract_mrp import extract_mrp
 from freshness_test import testing_freshness
 import openpyxl
 from openpyxl import Workbook
-from datetime import datetime
 
 packed_file = "packed_product_data.xlsx"
 unpacked_file = "unpacked_product_data.xlsx"
 
-# Function to initialize Excel file
 def initialize_workbook(file_name, headers):
     if os.path.exists(file_name):
         try:
@@ -30,23 +28,18 @@ def initialize_workbook(file_name, headers):
         sheet.append(headers)
     return wb, sheet
 
-# Initialize workbooks for packed and unpacked products
 packed_headers = ["Product Number", "Manufacturing Date", "Expiry Date", "Shelf Life", "Quantity", "MRP", "Status"]
 unpacked_headers = ["Sl. No", "Name", "Fresh/Rotten"]
 packed_wb, packed_sheet = initialize_workbook(packed_file, packed_headers)
 unpacked_wb, unpacked_sheet = initialize_workbook(unpacked_file, unpacked_headers)
 
-# Folder containing the images
 folder_path = r"test_images"
 product_number = packed_sheet.max_row
 sl_no = unpacked_sheet.max_row
 
 for file_name in os.listdir(folder_path):
-    img_path = os.path.join(folder_path, file_name)
-
-    if file_name.lower().endswith('.jpg'):
-        print(f"Processing: {file_name}")
-
+        img_path = os.path.join(folder_path, file_name)
+        
         try:
             classification_result = object_classification(img_path)
             print(classification_result)
@@ -58,12 +51,17 @@ for file_name in os.listdir(folder_path):
                 mrp = extract_mrp(extracted_text)
                 if packed_info is not None:
                     packed_info['mrp'] = mrp
-
-                shelf_life = f"{packed_info['shelf_life']['years']}years{packed_info['shelf_life']['months']}months{packed_info['shelf_life']['days']}days" if 'shelf_life' in packed_info else None
+                
                 quantity = f"{packed_info['quantities'][0]}{packed_info['quantities'][1]}" if 'quantities' in packed_info else None
-                if(packed_info['shelf_life']['years']>0 or packed_info['shelf_life']['months']>0  or  packed_info['shelf_life']['days'] >0):
-                    expiry_status="Not Expired"
+                if(packed_info['shelf_life']!='expired'):
+                    
+                    shelf_life = f"{packed_info['shelf_life']['years']} years {packed_info['shelf_life']['months']} months {packed_info['shelf_life']['days']} days" if 'shelf_life' in packed_info else None
+
+                    
+                    if(packed_info['shelf_life']['years']>0 or packed_info['shelf_life']['months']>0  or  packed_info['shelf_life']['days'] >0):
+                        expiry_status="Not Expired"
                 else:
+                    shelf_life="0 days"
                     expiry_status="Expired"
 
 
@@ -83,22 +81,21 @@ for file_name in os.listdir(folder_path):
             else:
                 predicted_class_name, shelf_life = testing_freshness(img_path)
 
-                freshness_status = "Fresh" if predicted_class_name == "Fresh" else "Rotten"
+                freshness_status = "Fresh" if predicted_class_name.__contains__("fresh")==1 else "Rotten"
 
                 row = [
                     sl_no,
-                    predicted_class_name,
+                    classification_result,
                     freshness_status
                 ]
                 unpacked_sheet.append(row)
                 sl_no += 1
 
                 print({
-                    'Name': predicted_class_name,
+                    'Name': classification_result,
                     'Fresh/Rotten': freshness_status
                 })
 
-            print(f"Deleted: {file_name}")
         except Exception as e:
             print(f"Error processing {file_name}: {e}")
 
